@@ -142,6 +142,7 @@ io.on("connection", (socket) => {
 module.exports.io = io;
 
 // ✅ Server Start
-server.listen(port, () =>
-  console.log("🚀 Server running with Socket.IO on port", port)
-);
+// server.listen(port, () =>
+//   console.log("🚀 Server running with Socket.IO on port", port)
+// );
+module.exports = app;
