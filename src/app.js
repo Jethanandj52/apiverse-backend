@@ -62,7 +62,9 @@ app.use("/requests", apiHistoryRoutes);
 
 
  
- 
+app.get("/", (req, res) => {
+  res.send("APIverse is running...");
+});
 
 // ✅ Database Connect
 connectToDB()
@@ -137,6 +139,8 @@ io.on("connection", (socket) => {
     console.log("❌ User disconnected:", socket.id);
   });
 });
+
+
 
 // ✅ Export io for workers
 module.exports.io = io;
