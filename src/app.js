@@ -63,7 +63,7 @@ app.use("/requests", apiHistoryRoutes);
 
  
 app.get("/", (req, res) => {
-  res.send("APIverse is running...");
+  res.send("APIverseis running...");
 });
 
 // ✅ Database Connect
