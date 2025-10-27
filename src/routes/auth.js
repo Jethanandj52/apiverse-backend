@@ -42,12 +42,12 @@ appRouter.post('/signup', async (req, res) => {
     // ✅ Send cookie + response
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // ❌ development me false
-      sameSite: "Lax",
+      secure: true,      // ✅ HTTPS ke liye
+      sameSite: "none",  // ✅ cross-site cookies allow
       maxAge: 24 * 60 * 60 * 1000
     });
 
-    res.status(201).json({ message: "User Added Successfully!"});
+    res.status(201).json({ message: "User Added Successfully!" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -71,17 +71,26 @@ appRouter.post("/login", async (req, res) => {
     // ✅ Set token in cookie
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // production me true
-      sameSite: "Lax",
+      secure: true,      // ✅ for vercel/https
+      sameSite: "none",  // ✅ allow cross-origin
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     user.isActive = true;
     await user.save();
 
-    res.status(200).json({ message: "Login successful", user: { firstName: user.firstName, lastName: user.lastName, email: user.email, _id: user._id, token } });
+    res.status(200).json({
+      message: "Login successful",
+      user: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        _id: user._id,
+        token
+      }
+    });
   } catch (error) {
-    console.error("Login error:");
+    console.error("Login error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -100,7 +109,8 @@ appRouter.post('/forget-password', async (req, res) => {
     user.resetToken = token;
     await user.save();
 
-    const resetLink = `http://localhost:5173/reset-password/${token}`;
+    const frontendURL = process.env.FRONTEND_URL || "https://apiverse-frotend.vercel.app";
+    const resetLink = `${frontendURL}/reset-password/${token}`;
 
     // ✅ Send Email via Nodemailer
     const transporter = nodemailer.createTransport({
@@ -115,9 +125,10 @@ appRouter.post('/forget-password', async (req, res) => {
       from: 'APIverse <jethanandj52@gmail.com>',
       to: email,
       subject: 'Reset Your Password - APIverse',
-      html: `<p>Click the link below to reset your password:</p>
-             <a href="${resetLink}">${resetLink}</a>
-             <p>This link expires in 10 minutes.</p>`
+      html: `
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>This link expires in 10 minutes.</p>`
     };
 
     await transporter.sendMail(mailOptions);
@@ -130,9 +141,8 @@ appRouter.post('/forget-password', async (req, res) => {
 
 
 // ======================== RESET PASSWORD ========================
-// ======================== RESET PASSWORD ========================
 appRouter.post('/reset-password/:token', async (req, res) => {
-   const { token } = req.params;
+  const { token } = req.params;
   const { newPassword } = req.body;
 
   if (!newPassword) {
@@ -154,11 +164,10 @@ appRouter.post('/reset-password/:token', async (req, res) => {
 
     // ✅ Update user password and clear reset token
     user.password = hashedPassword;
-    user.resetToken = null; // clear token
+    user.resetToken = null;
     await user.save();
 
     console.log(`✅ Password reset successful for user: ${user.email}`);
-
     res.json({ message: "Password updated successfully." });
   } catch (error) {
     console.error("⚠️ Reset Password Error:", error);
@@ -176,7 +185,6 @@ appRouter.post('/reset-password/:token', async (req, res) => {
 });
 
 
-
 // ======================== LOGOUT ========================
 appRouter.post('/logout', async (req, res) => {
   const { email } = req.body;
@@ -192,8 +200,8 @@ appRouter.post('/logout', async (req, res) => {
 
     res.clearCookie("token", {
       httpOnly: true,
-      secure: false, // ❌ local me false, prod me true
-      sameSite: "Lax"
+      secure: true,     // ✅ for vercel/https
+      sameSite: "none"  // ✅ allow cross-site clearing
     });
 
     return res.status(200).json({ msg: 'Logout successful' });
