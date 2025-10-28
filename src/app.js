@@ -80,7 +80,7 @@ connectToDB()
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://apiverse-frotend.vercel.app"],
+    origin: ["http://localhost:5173", "https://apiverse-fyp.vercel.app"],
     methods: ["GET", "POST"],
   },
 });
