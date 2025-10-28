@@ -1,4 +1,4 @@
-@@ -1,63 +0,0 @@
+ 
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
