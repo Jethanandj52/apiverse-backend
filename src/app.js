@@ -33,7 +33,7 @@ const port = process.env.PORT || 5000;
 // ✅ CORS Setup
 app.use(
   cors({
-   origin: ["http://localhost:5173", "https://apiverse-frotend.vercel.app"],
+   origin: ["http://localhost:5173", "https://apiverse-fyp.vercel.app"],
     credentials: true,
   })
 );
