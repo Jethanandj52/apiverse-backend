@@ -110,7 +110,7 @@ appRouter.post('/forget-password', async (req, res) => {
     await user.save();
 
     const frontendURL = process.env.FRONTEND_URL || "https://apiverse-frotend.vercel.app";
-    const resetLink = `${frontendURL}/reset-password/${token}`;
+    const resetLink = `https://apiverse-frotend.vercel.app/reset-password/${token}`;
 
     // ✅ Send Email via Nodemailer
     const transporter = nodemailer.createTransport({
