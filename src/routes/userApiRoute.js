@@ -181,7 +181,7 @@ router.get("/:id", async (req, res) => {
 /* -------------------------------------------------------------------------- */
 /* 🟢 UPDATE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-router.put("/:id", userAuth, upload.single("file"), async (req, res) => {
+router.put("/update/:id", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
@@ -250,7 +250,7 @@ fetch("${url}")
 /* -------------------------------------------------------------------------- */
 /* 🟢 DELETE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-router.delete("/:id", userAuth, async (req, res) => {
+router.delete("/delete/:id", userAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
