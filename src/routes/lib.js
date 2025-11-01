@@ -8,7 +8,7 @@ const { userAuth } = require('../middleware/Auth');
 const libraryRoute = express.Router();
 
 // ✅ Public - GET all libraries
-libraryRoute.get('/getlibraries', userAuth, async (req, res) => {
+libraryRoute.get('/getlibraries',   async (req, res) => {
   try {
     const libraries = await Library.find();
     res.json(libraries);
@@ -29,7 +29,7 @@ libraryRoute.get('/getLibById/:id', async (req, res) => {
 });
 
 // ✅ Protected - POST Add a new library
-libraryRoute.post("/libraryAddDB", userAuth, async (req, res) => {
+libraryRoute.post("/libraryAddDB",   async (req, res) => {
   try {
     const newLibrary = new Library(req.body);
     await newLibrary.save();
@@ -41,7 +41,7 @@ libraryRoute.post("/libraryAddDB", userAuth, async (req, res) => {
 });
 
 // ✅ Protected - POST Add multiple libraries
-libraryRoute.post("/libraryAddMany", userAuth, async (req, res) => {
+libraryRoute.post("/libraryAddMany",   async (req, res) => {
   try {
     if (!Array.isArray(req.body) || req.body.length === 0) {
       return res.status(400).json({ error: "Request body must be a non-empty array" });
@@ -61,7 +61,7 @@ libraryRoute.post("/libraryAddMany", userAuth, async (req, res) => {
 // ✅ Protected - PUT Update library + Notifications
 // ✅ Protected - PUT Update library + Notifications
 // ✅ Protected - PUT Update library + Notifications
-libraryRoute.put("/updateLib/:id", userAuth, async (req, res) => {
+libraryRoute.put("/updateLib/:id",   async (req, res) => {
   try {
     const lib = await Library.findById(req.params.id);
     if (!lib) return res.status(404).json({ message: "Library not found" });
@@ -115,7 +115,7 @@ libraryRoute.put("/updateLib/:id", userAuth, async (req, res) => {
 
 
 // ✅ Protected - DELETE library + Notifications
-libraryRoute.delete("/deletelibrary/:id", userAuth, async (req, res) => {
+libraryRoute.delete("/deletelibrary/:id",   async (req, res) => {
   const id = req.params.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -150,7 +150,7 @@ libraryRoute.delete("/deletelibrary/:id", userAuth, async (req, res) => {
 });
 
 // 🔍 Search libraries endpoint
-libraryRoute.get('/search', userAuth, async (req, res) => {
+libraryRoute.get('/search',   async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim() === '') {

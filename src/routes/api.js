@@ -32,7 +32,7 @@ apiRoute.post("/addManyApis", async (req, res) => {
 });
 
 // ✅ Show all APIs
-apiRoute.get('/showApi', userAuth, async (req, res) => {
+apiRoute.get('/showApi', async (req, res) => {
   try {
     const allApis = await Api.find();
     res.json(allApis);
@@ -55,7 +55,7 @@ apiRoute.get('/getApiById/:id', async (req, res) => {
 });
 
 // ✅ Update API with notifications (Library style)
-apiRoute.put("/updateApi/:id", userAuth, async (req, res) => {
+apiRoute.put("/updateApi/:id", async (req, res) => {
   try {
     const api = await Api.findById(req.params.id);
     if (!api) return res.status(404).json({ message: "API not found" });
@@ -104,7 +104,7 @@ apiRoute.put("/updateApi/:id", userAuth, async (req, res) => {
 });
 
 // ✅ Delete API with notifications
-apiRoute.delete("/deleteApi/:id", userAuth, async (req, res) => {
+apiRoute.delete("/deleteApi/:id", async (req, res) => {
   try {
     const api = await Api.findById(req.params.id);
     if (!api) return res.status(404).json({ message: "API not found" });
@@ -132,7 +132,7 @@ apiRoute.delete("/deleteApi/:id", userAuth, async (req, res) => {
 });
 
 // ✅ Search APIs
-apiRoute.get('/search', userAuth, async (req, res) => {
+apiRoute.get('/search',  async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim() === '') return res.status(400).json({ message: 'Search query is required' });

@@ -5,7 +5,7 @@ const { userAuth } = require('../middleware/Auth');
  
 
 
-userHD.get('/user', userAuth, async (req, res) => {
+userHD.get('/user',  async (req, res) => {
   try {
     res.json(req.user);
   } catch (error) {
@@ -13,7 +13,7 @@ userHD.get('/user', userAuth, async (req, res) => {
   }
 });
 
-userHD.get('/admin/users', userAuth, async (req, res) => {
+userHD.get('/admin/users', async (req, res) => {
   try {
     if (req.user.email !== 'admin@gmail.com') {
       return res.status(403).json({ error: "Access denied: Admin only" });
@@ -26,7 +26,7 @@ userHD.get('/admin/users', userAuth, async (req, res) => {
   }
 });
 
-userHD.delete('/admin/user/:id', userAuth, async (req, res) => {
+userHD.delete('/admin/user/:id', async (req, res) => {
   try {
     if (req.user.email !== 'admin@gmail.com') {
       return res.status(403).json({ error: "Access denied: Admin only" });
