@@ -255,8 +255,7 @@ router.delete("/:id", async (req, res) => {
     const api = await UserApi.findById(id);
     if (!api) return res.status(404).json({ message: "API not found" });
 
-    await api.remove();
-
+    await UserApi.deleteOne({ _id: id }); 
     return res.status(200).json({ message: "✅ API deleted successfully" });
   } catch (err) {
     console.error("❌ Delete API error:", err);
