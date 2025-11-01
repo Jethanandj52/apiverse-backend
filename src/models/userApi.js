@@ -22,10 +22,13 @@ const userApiSchema = new Schema(
     // visibility and access
     visibility: { type: String, enum: ["public", "private"], default: "public" },
 
+    // example code (e.g., usage snippet or sample call)
+    
+
     // slug + public URL
     slug: { type: String, required: true, unique: true },
     url: { type: String, required: true },
-
+exampleCode: { type: String, default: "" },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

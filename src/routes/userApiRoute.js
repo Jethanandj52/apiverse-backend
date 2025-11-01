@@ -25,6 +25,8 @@ function makeSlug(name) {
 /* -------------------------------------------------------------------------- */
 /* 🟢 CREATE USER API                                                         */
 /* -------------------------------------------------------------------------- */
+// ...existing imports and setup same as before
+
 router.post("/create", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
@@ -34,10 +36,8 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
     let parsedData = [];
     let fileType = "none";
 
-    // Parse uploaded file
     if (req.file) {
       const fileName = req.file.originalname.toLowerCase();
-
       if (fileName.endsWith(".csv")) {
         parsedData = await csv().fromString(req.file.buffer.toString());
         fileType = "csv";
@@ -64,9 +64,15 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
     const safeParameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters || {});
     const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
 
-    // ✅ Generate slug & public URL
     const slug = makeSlug(name);
     const url = `${req.protocol}://${req.get("host")}/userapi/serve/${slug}`;
+
+    // ✅ Auto-generate example code (JavaScript)
+    const exampleCode = `// Example: Fetch data from your custom API
+fetch("${url}")
+  .then(response => response.json())
+  .then(data => console.log("Fetched data:", data))
+  .catch(error => console.error("Error:", error));`;
 
     const newApi = new UserApi({
       user: req.user._id,
@@ -80,7 +86,8 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
       visibility: visibility === "private" ? "private" : "public",
       fileType,
       slug,
-      url, // ✅ save in DB
+      url,
+      exampleCode, // ✅ added
     });
 
     await newApi.save();
@@ -95,6 +102,7 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
         endpoints: newApi.endpoints,
         visibility: newApi.visibility,
         dataCount: Array.isArray(newApi.data) ? newApi.data.length : 0,
+        exampleCode: newApi.exampleCode, // ✅ return bhi kar rahe hain
       },
     });
   } catch (err) {
@@ -102,6 +110,7 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
     return res.status(500).json({ message: "Failed to create API", error: err.message });
   }
 });
+
 
 /* -------------------------------------------------------------------------- */
 /* 🟢 PUBLIC & USER-SPECIFIC APIs                                            */
