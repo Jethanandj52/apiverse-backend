@@ -177,6 +177,98 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/* 🟢 UPDATE USER API BY ID                                                   */
+/* -------------------------------------------------------------------------- */
+router.put("/:id", userAuth, upload.single("file"), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, category, version, parameters, endpoints, visibility } = req.body;
+
+    const api = await UserApi.findById(id);
+    if (!api) return res.status(404).json({ message: "API not found" });
+
+    // 🔒 Ensure the logged-in user is the owner
+    if (api.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update fields if provided
+    if (name) api.name = name;
+    if (description) api.description = description;
+    if (category) api.category = category;
+    if (version) api.version = version;
+    if (parameters) api.parameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters);
+    if (endpoints) api.endpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints);
+    if (visibility) api.visibility = visibility === "private" ? "private" : "public";
+
+    // Handle uploaded file
+    if (req.file) {
+      const fileName = req.file.originalname.toLowerCase();
+      let parsedData = [];
+      let fileType = "none";
+
+      if (fileName.endsWith(".csv")) {
+        parsedData = await csv().fromString(req.file.buffer.toString());
+        fileType = "csv";
+      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        parsedData = xlsx.utils.sheet_to_json(sheet);
+        fileType = "excel";
+      } else if (fileName.endsWith(".json")) {
+        parsedData = JSON.parse(req.file.buffer.toString());
+        fileType = "json";
+      } else {
+        return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
+      }
+
+      api.data = parsedData;
+      api.fileType = fileType;
+    }
+
+    // Update exampleCode if name changed
+    if (name) {
+      const url = `${req.protocol}://${req.get("host")}/userapi/serve/${api.slug}`;
+      api.exampleCode = `// Example: Fetch data from your custom API
+fetch("${url}")
+  .then(response => response.json())
+  .then(data => console.log("Fetched data:", data))
+  .catch(error => console.error("Error:", error));`;
+    }
+
+    await api.save();
+
+    return res.status(200).json({ message: "✅ API updated successfully", api });
+  } catch (err) {
+    console.error("❌ Update API error:", err);
+    return res.status(500).json({ message: "Failed to update API", error: err.message });
+  }
+});
+
+/* -------------------------------------------------------------------------- */
+/* 🟢 DELETE USER API BY ID                                                   */
+/* -------------------------------------------------------------------------- */
+router.delete("/:id", userAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const api = await UserApi.findById(id);
+    if (!api) return res.status(404).json({ message: "API not found" });
+
+    // 🔒 Ensure the logged-in user is the owner
+    if (api.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    await api.remove();
+
+    return res.status(200).json({ message: "✅ API deleted successfully" });
+  } catch (err) {
+    console.error("❌ Delete API error:", err);
+    return res.status(500).json({ message: "Failed to delete API", error: err.message });
+  }
+});
 
 async function serveApiHandler(req, res) {
   try {
