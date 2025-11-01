@@ -23,7 +23,6 @@ const groupRoutes = require('./routes/groups');
  
 const savedRequestRoute = require("./routes/savedRequestRoute");
 const apiHistoryRoutes = require("./routes/apiHistoryRoutes");
-const userApiRoute = require("./routes/userApiRoute");
 
 
  
@@ -60,7 +59,7 @@ app.use('/sharedRequests', require('./routes/sharedRequests'));
 app.use('/messages', require('./routes/messages'));
 app.use("/api/savedRequests", savedRequestRoute);
 app.use("/requests", apiHistoryRoutes);
-app.use("/userapi", userApiRoute);
+
 
  
 app.get("/", (req, res) => {
