@@ -145,6 +145,38 @@ router.get("/serve/:slug/:sub", serveApiHandler);
 
 // ✅ Sub-endpoint with ID (e.g. /students/0)
 router.get("/serve/:slug/:sub/:id", serveApiHandler);
+/* -------------------------------------------------------------------------- */
+/* 🟢 GET USER API BY ID                                                      */
+/* -------------------------------------------------------------------------- */
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).json({ message: "API ID is required" });
+
+    const api = await UserApi.findById(id);
+    if (!api) return res.status(404).json({ message: "API not found" });
+
+    return res.status(200).json({
+      _id: api._id,
+      name: api.name,
+      description: api.description,
+      category: api.category,
+      version: api.version,
+      parameters: api.parameters,
+      endpoints: api.endpoints,
+      visibility: api.visibility,
+      fileType: api.fileType,
+      data: api.data,
+      exampleCode: api.exampleCode,
+      url: api.url,
+    });
+  } catch (err) {
+    console.error("❌ Fetch API by ID error:", err);
+    return res.status(500).json({ message: "Failed to fetch API", error: err.message });
+  }
+});
+
 
 async function serveApiHandler(req, res) {
   try {
