@@ -24,7 +24,8 @@ const groupRoutes = require('./routes/groups');
 const savedRequestRoute = require("./routes/savedRequestRoute");
 const apiHistoryRoutes = require("./routes/apiHistoryRoutes");
 
-
+const router = require("./routes/apiSecurity");
+const userApiRoute = require("./routes/userApiRoute");
  
 
 const app = express();
@@ -60,7 +61,8 @@ app.use('/messages', require('./routes/messages'));
 app.use("/api/savedRequests", savedRequestRoute);
 app.use("/requests", apiHistoryRoutes);
 
-
+app.use("/api-security", router);
+app.use("/userapi", userApiRoute);
  
 app.get("/", (req, res) => {
   res.send("APIverseis running...");
