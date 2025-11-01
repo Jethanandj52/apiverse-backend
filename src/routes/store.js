@@ -14,8 +14,13 @@ router.post("/addApi", async (req, res) => {
   try {
     const { userId, apiId, isUserApi } = req.body;
 
+    if (!userId || !apiId)
+      return res.status(400).json({ error: "Missing required fields" });
+
     // Check which collection to use
-    const api = isUserApi ? await UserApi.findById(apiId) : await Api.findById(apiId);
+    const api = isUserApi
+      ? await UserApi.findById(apiId)
+      : await Api.findById(apiId);
     if (!api) return res.status(404).json({ error: "API not found" });
 
     // Find or create user store
@@ -57,6 +62,10 @@ router.post("/addApi", async (req, res) => {
 router.post("/addLibrary", async (req, res) => {
   try {
     const { userId, libraryId } = req.body;
+
+    if (!userId || !libraryId)
+      return res.status(400).json({ error: "Missing required fields" });
+
     const library = await Library.findById(libraryId);
     if (!library) return res.status(404).json({ error: "Library not found" });
 
@@ -89,14 +98,20 @@ router.post("/addLibrary", async (req, res) => {
 router.get("/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
+
     const store = await Store.findOne({ user: userId })
       .populate("apis")
       .populate("userApis")
       .populate("libraries");
 
-    if (!store) return res.status(404).json({ message: "No favorites found for this user" });
+    if (!store)
+      return res.status(404).json({ message: "No favorites found for this user" });
 
-    res.status(200).json(store);
+    res.status(200).json({
+      apis: store.apis || [],
+      userApis: store.userApis || [],
+      libraries: store.libraries || [],
+    });
   } catch (error) {
     console.error("Get favorites error:", error);
     res.status(500).json({ error: error.message });
@@ -107,8 +122,11 @@ router.get("/:userId", async (req, res) => {
 router.delete("/removeApi", async (req, res) => {
   try {
     const { userId, apiId, isUserApi } = req.body;
+    if (!userId || !apiId)
+      return res.status(400).json({ error: "Missing required fields" });
 
     const updateField = isUserApi ? "userApis" : "apis";
+
     const store = await Store.findOneAndUpdate(
       { user: userId },
       { $pull: { [updateField]: apiId } },
@@ -134,6 +152,9 @@ router.delete("/removeApi", async (req, res) => {
 router.delete("/removeLibrary", async (req, res) => {
   try {
     const { userId, libraryId } = req.body;
+    if (!userId || !libraryId)
+      return res.status(400).json({ error: "Missing required fields" });
+
     const store = await Store.findOneAndUpdate(
       { user: userId },
       { $pull: { libraries: libraryId } },
