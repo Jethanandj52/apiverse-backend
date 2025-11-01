@@ -181,18 +181,16 @@ router.get("/:id", async (req, res) => {
 /* -------------------------------------------------------------------------- */
 /* 🟢 UPDATE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-router.put("/:id", userAuth, upload.single("file"), async (req, res) => {
+/* -------------------------------------------------------------------------- */
+/* 🟢 UPDATE USER API BY ID (No Auth)                                        */
+/* -------------------------------------------------------------------------- */
+router.put("/:id", upload.single("file"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
 
     const api = await UserApi.findById(id);
     if (!api) return res.status(404).json({ message: "API not found" });
-
-    // 🔒 Ensure the logged-in user is the owner
-    if (api.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
 
     // Update fields if provided
     if (name) api.name = name;
@@ -248,19 +246,14 @@ fetch("${url}")
 });
 
 /* -------------------------------------------------------------------------- */
-/* 🟢 DELETE USER API BY ID                                                   */
+/* 🟢 DELETE USER API BY ID (No Auth)                                        */
 /* -------------------------------------------------------------------------- */
-router.delete("/:id", userAuth, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
     const api = await UserApi.findById(id);
     if (!api) return res.status(404).json({ message: "API not found" });
-
-    // 🔒 Ensure the logged-in user is the owner
-    if (api.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
 
     await api.remove();
 
@@ -270,6 +263,7 @@ router.delete("/:id", userAuth, async (req, res) => {
     return res.status(500).json({ message: "Failed to delete API", error: err.message });
   }
 });
+
 
 async function serveApiHandler(req, res) {
   try {
