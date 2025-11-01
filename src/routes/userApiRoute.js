@@ -159,6 +159,7 @@ router.get("/:id", async (req, res) => {
 
     return res.status(200).json({
       _id: api._id,
+      user: api.user,
       name: api.name,
       description: api.description,
       category: api.category,
