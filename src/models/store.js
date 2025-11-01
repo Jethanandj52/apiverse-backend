@@ -20,6 +20,7 @@ const storeSchema = new Schema(
         ref: "Library",
       },
     ],
+      userApis: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserApi" }],
   },
   {
     collection: "stores",
