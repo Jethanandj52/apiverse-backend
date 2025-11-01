@@ -2,16 +2,24 @@ const express = require("express");
 const Store = require("../models/store");
 const Api = require("../models/api");
 const Library = require("../models/lib");
+const UserApi = require("../models/userApi");
+
 const { User } = require("../models/user");
 const Notification = require("../models/notification");
 
 const router = express.Router();
 
 // ✅ Add API to favorites
+// ✅ Add API to favorites (supports both official & user-created)
 router.post("/addApi", async (req, res) => {
   try {
-    const { userId, apiId } = req.body;
-    const api = await Api.findById(apiId);
+    const { userId, apiId, isUserApi } = req.body;
+
+    // ✅ Pehle check karo kis collection se API leni hai
+    const api = isUserApi
+      ? await UserApi.findById(apiId)
+      : await Api.findById(apiId);
+
     if (!api) return res.status(404).json({ error: "API not found" });
 
     let store = await Store.findOne({ user: userId });
@@ -26,7 +34,7 @@ router.post("/addApi", async (req, res) => {
         user: userId,
         type: "API",
         itemId: apiId,
-        action: "favorite", // 🔹 required
+        action: "favorite",
         message: `API "${api.name}" added to favorites`,
       });
     }
@@ -37,6 +45,7 @@ router.post("/addApi", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // ✅ Add Library to favorites
 router.post("/addLibrary", async (req, res) => {
