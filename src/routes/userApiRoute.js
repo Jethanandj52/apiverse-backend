@@ -250,7 +250,7 @@ fetch("${url}")
 /* -------------------------------------------------------------------------- */
 /* 🟢 DELETE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-router.delete("/:id", userAuth, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized: No user info" });
 
