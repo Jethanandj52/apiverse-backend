@@ -26,6 +26,7 @@
     "nodemailer": "^7.0.5",
     "router": "^2.2.0",
     "socket.io": "^4.8.1",
+    "ssl-checker": "^2.0.10",
     "validator": "^13.15.15"
   }
 }
