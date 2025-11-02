@@ -30,12 +30,12 @@ function makeSlug(name) {
 router.post("/create", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
-
     if (!name) return res.status(400).json({ message: "API name is required" });
 
     let parsedData = [];
     let fileType = "none";
 
+    // ✅ File parsing
     if (req.file) {
       const fileName = req.file.originalname.toLowerCase();
       if (fileName.endsWith(".csv")) {
@@ -65,11 +65,8 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
     const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
 
     const slug = makeSlug(name);
+    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`; // ✅ Always HTTPS from BASE_URL
 
-    // ✅ Use env BASE_URL instead of req.protocol + req.get("host")
-    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`;
-
-    // ✅ Auto-generate example code (JavaScript)
     const exampleCode = `// Example: Fetch data from your custom API
 fetch("${url}")
   .then(response => response.json())
