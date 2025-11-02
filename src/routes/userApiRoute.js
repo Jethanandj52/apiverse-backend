@@ -30,14 +30,16 @@ function makeSlug(name) {
 router.post("/create", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
+
     if (!name) return res.status(400).json({ message: "API name is required" });
 
     let parsedData = [];
     let fileType = "none";
 
-    // ✅ File parsing
+    // ✅ Parse uploaded file
     if (req.file) {
       const fileName = req.file.originalname.toLowerCase();
+
       if (fileName.endsWith(".csv")) {
         parsedData = await csv().fromString(req.file.buffer.toString());
         fileType = "csv";
@@ -47,25 +49,41 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
         parsedData = xlsx.utils.sheet_to_json(sheet);
         fileType = "excel";
       } else if (fileName.endsWith(".json")) {
-        parsedData = JSON.parse(req.file.buffer.toString());
-        fileType = "json";
+        try {
+          parsedData = JSON.parse(req.file.buffer.toString());
+          fileType = "json";
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid JSON file" });
+        }
       } else {
         return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
       }
-    } else if (req.body.data) {
+    }
+
+    // ✅ Parse data field if no file
+    else if (req.body.data) {
       try {
-        parsedData = typeof req.body.data === "string" ? JSON.parse(req.body.data) : req.body.data;
+        parsedData = typeof req.body.data === "string" 
+          ? JSON.parse(req.body.data) 
+          : req.body.data;
+
+        if (!Array.isArray(parsedData)) {
+          return res.status(400).json({ message: "Data must be a JSON array" });
+        }
+
         fileType = "json";
       } catch (e) {
-        return res.status(400).json({ message: "Invalid JSON in data field" });
+        console.error("❌ Invalid JSON in data field:", e.message);
+        return res.status(400).json({ message: "Invalid JSON in data field", error: e.message });
       }
     }
 
+    // ✅ Convert parameters and endpoints to string if needed
     const safeParameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters || {});
     const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
 
     const slug = makeSlug(name);
-    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`; // ✅ Always HTTPS from BASE_URL
+    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`; // Always HTTPS
 
     const exampleCode = `// Example: Fetch data from your custom API
 fetch("${url}")
@@ -109,6 +127,7 @@ fetch("${url}")
     return res.status(500).json({ message: "Failed to create API", error: err.message });
   }
 });
+
 
 
 
