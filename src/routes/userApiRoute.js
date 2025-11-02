@@ -118,7 +118,92 @@ fetch("${url}")
 router.get("/public", async (req, res) => {
   try {
     const apis = await UserApi.find({ visibility: "public" }).select("-data");
-    res.json(apis);
+    res.json(apis);router.post("/create", userAuth, upload.single("file"), async (req, res) => {
+  try {
+    const { name, description, category, version, parameters, endpoints, visibility } = req.body;
+
+    if (!name) return res.status(400).json({ message: "API name is required" });
+
+    let parsedData = [];
+    let fileType = "none";
+
+    if (req.file) {
+      const fileName = req.file.originalname.toLowerCase();
+      if (fileName.endsWith(".csv")) {
+        parsedData = await csv().fromString(req.file.buffer.toString());
+        fileType = "csv";
+      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        parsedData = xlsx.utils.sheet_to_json(sheet);
+        fileType = "excel";
+      } else if (fileName.endsWith(".json")) {
+        parsedData = JSON.parse(req.file.buffer.toString());
+        fileType = "json";
+      } else {
+        return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
+      }
+    } else if (req.body.data) {
+      try {
+        parsedData = typeof req.body.data === "string" ? JSON.parse(req.body.data) : req.body.data;
+        fileType = "json";
+      } catch (e) {
+        return res.status(400).json({ message: "Invalid JSON in data field" });
+      }
+    }
+
+    const safeParameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters || {});
+    const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
+
+    const slug = makeSlug(name);
+
+    // ✅ HTTPS-safe URL
+    const url = `https://${req.get("host")}/userapi/serve/${slug}`;
+
+    // ✅ Auto-generate example code (JavaScript)
+    const exampleCode = `// Example: Fetch data from your custom API
+fetch("${url}")
+  .then(response => response.json())
+  .then(data => console.log("Fetched data:", data))
+  .catch(error => console.error("Error:", error));`;
+
+    const newApi = new UserApi({
+      user: req.user._id,
+      name,
+      description: description || "",
+      category: category || "General",
+      version: version || "v1",
+      parameters: safeParameters,
+      endpoints: safeEndpoints,
+      data: parsedData,
+      visibility: visibility === "private" ? "private" : "public",
+      fileType,
+      slug,
+      url,
+      exampleCode,
+    });
+
+    await newApi.save();
+
+    return res.status(201).json({
+      message: "✅ User API created successfully",
+      api: {
+        _id: newApi._id,
+        name: newApi.name,
+        url: newApi.url,
+        parameters: newApi.parameters,
+        endpoints: newApi.endpoints,
+        visibility: newApi.visibility,
+        dataCount: Array.isArray(newApi.data) ? newApi.data.length : 0,
+        exampleCode: newApi.exampleCode,
+      },
+    });
+  } catch (err) {
+    console.error("❌ API create error:", err);
+    return res.status(500).json({ message: "Failed to create API", error: err.message });
+  }
+});
+
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch public APIs", error: err.message });
   }
