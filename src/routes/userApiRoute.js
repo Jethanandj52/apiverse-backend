@@ -65,7 +65,9 @@ router.post("/create", userAuth, upload.single("file"), async (req, res) => {
     const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
 
     const slug = makeSlug(name);
-    const url = `${req.protocol}://${req.get("host")}/userapi/serve/${slug}`;
+
+    // ✅ Use env BASE_URL instead of req.protocol + req.get("host")
+    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`;
 
     // ✅ Auto-generate example code (JavaScript)
     const exampleCode = `// Example: Fetch data from your custom API
@@ -87,7 +89,7 @@ fetch("${url}")
       fileType,
       slug,
       url,
-      exampleCode, // ✅ added
+      exampleCode,
     });
 
     await newApi.save();
@@ -102,7 +104,7 @@ fetch("${url}")
         endpoints: newApi.endpoints,
         visibility: newApi.visibility,
         dataCount: Array.isArray(newApi.data) ? newApi.data.length : 0,
-        exampleCode: newApi.exampleCode, // ✅ return bhi kar rahe hain
+        exampleCode: newApi.exampleCode,
       },
     });
   } catch (err) {
@@ -110,6 +112,7 @@ fetch("${url}")
     return res.status(500).json({ message: "Failed to create API", error: err.message });
   }
 });
+
 
 
 /* -------------------------------------------------------------------------- */
