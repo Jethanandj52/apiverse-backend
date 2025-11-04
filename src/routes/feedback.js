@@ -16,20 +16,28 @@ router.post("/sendFeedback", userAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: "All fields are required" });
     }
 
+    // save feedback
     const feedback = new Feedback({ userId, name, email, subject, message });
     await feedback.save();
 
+    // ✅ find admin(s) by email instead of role
     const User = mongoose.model("User");
-    const admins = await User.find({ role: "admin" }, "_id");
+    const admins = await User.find(
+      { email: { $in: ["jethanandj52@gmail.com"] } }, // <-- yahan apne admin emails likho
+      "_id"
+    );
 
-    for (const admin of admins) {
-      await Notification.create({
-        user: admin._id,
-        type: "Feedback",
-        itemId: feedback._id,
-        action: "new",
-        message: `New feedback from ${name}: "${subject}"`,
-      });
+    // agar koi admin mila
+    if (admins.length > 0) {
+      for (const admin of admins) {
+        await Notification.create({
+          user: admin._id,
+          type: "Feedback",
+          itemId: feedback._id,
+          action: "new",
+          message: `New feedback from ${name}: "${subject}"`,
+        });
+      }
     }
 
     res.json({ success: true, message: "Feedback submitted successfully" });
