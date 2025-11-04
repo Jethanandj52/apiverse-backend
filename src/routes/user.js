@@ -21,7 +21,7 @@ userHD.get('/user', userAuth, async (req, res) => {
 // Admin: Get all users
 userHD.get('/admin/users', userAuth, async (req, res) => {
   try {
-    if (req.user.email !== 'admin@gmail.com') {
+    if (req.user.email !== 'jethanandj52@gmail.com') {
       return res.status(403).json({ error: "Access denied: Admin only" });
     }
 
@@ -35,7 +35,7 @@ userHD.get('/admin/users', userAuth, async (req, res) => {
 // Admin: Delete a user
 userHD.delete('/admin/user/:id', userAuth, async (req, res) => {
   try {
-    if (req.user.email !== 'admin@gmail.com') {
+    if (req.user.email !== 'jethanandj52@gmail.com') {
       return res.status(403).json({ error: "Access denied: Admin only" });
     }
 
