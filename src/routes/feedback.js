@@ -54,11 +54,11 @@ router.post("/replyFeedback/:id", async (req, res) => {
 
     let transporter = nodemailer.createTransport({
       service: "gmail",
-      auth: { user: "jethanandj52@gmail.com", pass: "zsnvgtugeahrpnpi" },
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
 
     await transporter.sendMail({
-      from: "APIverse Admin <jethanandj52@gmail.com>",
+      from: `APIverse Admin <${process.env.EMAIL_USER}>`,
       to: feedback.email,
       subject: `Reply to your feedback: ${feedback.subject}`,
       text: replyMessage,
