@@ -41,50 +41,33 @@ router.post("/replyFeedback/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { replyMessage } = req.body;
+    console.log("ReplyMessage:", replyMessage, "ID:", id);
 
     const feedback = await Feedback.findById(id);
-    if (!feedback) {
-      return res.status(404).json({ success: false, error: "Feedback not found" });
-    }
+    if (!feedback) return res.status(404).json({ success: false, error: "Feedback not found" });
 
-    // ✅ Update DB with reply
     feedback.reply = replyMessage;
     feedback.repliedAt = new Date();
     await feedback.save();
 
-    // ✅ Send email to user
+    console.log("Saved feedback, sending email...");
+
     let transporter = nodemailer.createTransport({
-      service: "gmail", // ya SMTP config
-      auth: {
-        user: "jethanandj52@gmail.com",
-        pass: "zsnvgtugeahrpnpi",
-      },
+      service: "gmail",
+      auth: { user: "jethanandj52@gmail.com", pass: "zsnvgtugeahrpnpi" },
     });
-
-    const emailBody = `
-Hello ${feedback.name},
-
-We received your feedback:
-
-📌 Subject: ${feedback.subject}  
-📝 Message: ${feedback.message}
-
-Here is the admin's reply to your feedback:
-
-💬 ${replyMessage}
-
-Thank you for helping us improve APIverse!
-    `;
 
     await transporter.sendMail({
       from: "APIverse Admin <jethanandj52@gmail.com>",
       to: feedback.email,
       subject: `Reply to your feedback: ${feedback.subject}`,
-      text: emailBody,
+      text: replyMessage,
     });
 
+    console.log("Email sent successfully!");
     res.json({ success: true, message: "Reply sent and saved successfully" });
   } catch (err) {
+    console.error("Reply Feedback Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
