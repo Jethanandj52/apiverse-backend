@@ -12,7 +12,7 @@ const notificationSchema = new Schema(
     itemId: { type: mongoose.Schema.Types.ObjectId },
     action: { 
       type: String, 
-      enum: ["statusChange", "update", "delete", "favorite", "invite", "reply"],
+      enum: ["statusChange", "update", "delete", "favorite", "invite", "reply","new"],
     },
     message: { type: String, required: true },
     read: { type: Boolean, default: false },
