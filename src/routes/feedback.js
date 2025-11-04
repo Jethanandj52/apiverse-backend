@@ -24,12 +24,16 @@ router.post("/sendFeedback", async (req, res) => {
 // ✅ 2. Admin get all feedback
 router.get("/showFeedback", async (req, res) => {
   try {
+    // ye line add kar — caching disable karne ke liye
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+
     const feedbacks = await Feedback.find().sort({ createdAt: -1 });
     res.json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ✅ 3. Admin reply to feedback
 // ✅ 3. Admin reply to feedback
