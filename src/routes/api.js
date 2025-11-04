@@ -32,7 +32,7 @@ apiRoute.post("/addManyApis", async (req, res) => {
 });
 
 // ✅ Show all APIs
-apiRoute.get('/showApi', userAuth, async (req, res) => {
+apiRoute.get('/showApi', async (req, res) => {
   try {
     const allApis = await Api.find();
     res.json(allApis);
