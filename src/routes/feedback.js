@@ -50,6 +50,7 @@ router.get("/showFeedback", async (req, res) => {
 });
 
 // ✅ Reply to Feedback
+// ✅ Reply to Feedback (fixed)
 router.post("/replyFeedback/:id", userAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -67,6 +68,7 @@ router.post("/replyFeedback/:id", userAuth, async (req, res) => {
     feedback.repliedAt = new Date();
     await feedback.save();
 
+    // ✅ Email send
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
@@ -79,6 +81,7 @@ router.post("/replyFeedback/:id", userAuth, async (req, res) => {
       text: `Hi ${feedback.name},\n\nYour feedback: ${feedback.message}\n\nAdmin Reply:\n${replyMessage}\n\nThank you!`,
     });
 
+    // ✅ Notification for user only (not admin)
     await Notification.create({
       user: feedback.userId,
       type: "Feedback",
@@ -93,6 +96,7 @@ router.post("/replyFeedback/:id", userAuth, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 // ✅ Delete Feedback
 router.delete("/deleteFeedback/:id", userAuth, async (req, res) => {
