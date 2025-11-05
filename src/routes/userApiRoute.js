@@ -293,6 +293,17 @@ router.get("/myApis", userAuth, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch user APIs", error: err.message });
   }
 });
+// GET public user APIs
+router.get("/public", async (req, res) => {
+  try {
+    const publicApis = await UserApi.find({ visibility: "public" });
+    return res.status(200).json({ message: "✅ Public APIs fetched", total: publicApis.length, data: publicApis });
+  } catch (err) {
+    console.error("❌ Public user APIs fetch error:", err);
+    return res.status(500).json({ message: "Failed to fetch public APIs", error: err.message });
+  }
+});
+
 
 router.get("/:id", async (req, res) => {
   try {
