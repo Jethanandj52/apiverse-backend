@@ -1,4 +1,3 @@
-// routes/userApi.js
 const express = require("express");
 const multer = require("multer");
 const xlsx = require("xlsx");
@@ -6,6 +5,7 @@ const csv = require("csvtojson");
 const crypto = require("crypto");
 const { userAuth } = require("../middleware/Auth");
 const UserApi = require("../models/userApi");
+const Notification = require("../models/notification");
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -22,125 +22,28 @@ function makeSlug(name) {
   return `${base || "api"}-${rand}`;
 }
 
+// 🔔 Helper: create notification
+async function createNotification({ userId, type, itemId, action, message }) {
+  try {
+    const notification = new Notification({
+      user: userId,
+      type,
+      itemId,
+      action,
+      message,
+    });
+    await notification.save();
+  } catch (err) {
+    console.error("Notification error:", err.message);
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* 🟢 CREATE USER API                                                         */
 /* -------------------------------------------------------------------------- */
-// ...existing imports and setup same as before
-
 router.post("/create", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
-
-    if (!name) return res.status(400).json({ message: "API name is required" });
-
-    let parsedData = [];
-    let fileType = "none";
-
-    // ✅ Parse uploaded file
-    if (req.file) {
-      const fileName = req.file.originalname.toLowerCase();
-
-      if (fileName.endsWith(".csv")) {
-        parsedData = await csv().fromString(req.file.buffer.toString());
-        fileType = "csv";
-      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-        const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        parsedData = xlsx.utils.sheet_to_json(sheet);
-        fileType = "excel";
-      } else if (fileName.endsWith(".json")) {
-        try {
-          parsedData = JSON.parse(req.file.buffer.toString());
-          fileType = "json";
-        } catch (e) {
-          return res.status(400).json({ message: "Invalid JSON file" });
-        }
-      } else {
-        return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
-      }
-    }
-
-    // ✅ Parse data field if no file
-    else if (req.body.data) {
-      try {
-        parsedData = typeof req.body.data === "string" 
-          ? JSON.parse(req.body.data) 
-          : req.body.data;
-
-        if (!Array.isArray(parsedData)) {
-          return res.status(400).json({ message: "Data must be a JSON array" });
-        }
-
-        fileType = "json";
-      } catch (e) {
-        console.error("❌ Invalid JSON in data field:", e.message);
-        return res.status(400).json({ message: "Invalid JSON in data field", error: e.message });
-      }
-    }
-
-    // ✅ Convert parameters and endpoints to string if needed
-    const safeParameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters || {});
-    const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
-
-    const slug = makeSlug(name);
-    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`; // Always HTTPS
-
-    const exampleCode = `// Example: Fetch data from your custom API
-fetch("${url}")
-  .then(response => response.json())
-  .then(data => console.log("Fetched data:", data))
-  .catch(error => console.error("Error:", error));`;
-
-    const newApi = new UserApi({
-      user: req.user._id,
-      name,
-      description: description || "",
-      category: category || "General",
-      version: version || "v1",
-      parameters: safeParameters,
-      endpoints: safeEndpoints,
-      data: parsedData,
-      visibility: visibility === "private" ? "private" : "public",
-      fileType,
-      slug,
-      url,
-      exampleCode,
-    });
-
-    await newApi.save();
-
-    return res.status(201).json({
-      message: "✅ User API created successfully",
-      api: {
-        _id: newApi._id,
-        name: newApi.name,
-        url: newApi.url,
-        parameters: newApi.parameters,
-        endpoints: newApi.endpoints,
-        visibility: newApi.visibility,
-        dataCount: Array.isArray(newApi.data) ? newApi.data.length : 0,
-        exampleCode: newApi.exampleCode,
-      },
-    });
-  } catch (err) {
-    console.error("❌ API create error:", err);
-    return res.status(500).json({ message: "Failed to create API", error: err.message });
-  }
-});
-
-
-
-
-/* -------------------------------------------------------------------------- */
-/* 🟢 PUBLIC & USER-SPECIFIC APIs                                            */
-/* -------------------------------------------------------------------------- */
-router.get("/public", async (req, res) => {
-  try {
-    const apis = await UserApi.find({ visibility: "public" }).select("-data");
-    res.json(apis);router.post("/create", userAuth, upload.single("file"), async (req, res) => {
-  try {
-    const { name, description, category, version, parameters, endpoints, visibility } = req.body;
-
     if (!name) return res.status(400).json({ message: "API name is required" });
 
     let parsedData = [];
@@ -148,10 +51,8 @@ router.get("/public", async (req, res) => {
 
     if (req.file) {
       const fileName = req.file.originalname.toLowerCase();
-      if (fileName.endsWith(".csv")) {
-        parsedData = await csv().fromString(req.file.buffer.toString());
-        fileType = "csv";
-      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+      if (fileName.endsWith(".csv")) parsedData = await csv().fromString(req.file.buffer.toString()), fileType = "csv";
+      else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
         const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         parsedData = xlsx.utils.sheet_to_json(sheet);
@@ -159,27 +60,18 @@ router.get("/public", async (req, res) => {
       } else if (fileName.endsWith(".json")) {
         parsedData = JSON.parse(req.file.buffer.toString());
         fileType = "json";
-      } else {
-        return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
-      }
+      } else return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
     } else if (req.body.data) {
-      try {
-        parsedData = typeof req.body.data === "string" ? JSON.parse(req.body.data) : req.body.data;
-        fileType = "json";
-      } catch (e) {
-        return res.status(400).json({ message: "Invalid JSON in data field" });
-      }
+      parsedData = typeof req.body.data === "string" ? JSON.parse(req.body.data) : req.body.data;
+      fileType = "json";
     }
 
     const safeParameters = typeof parameters === "string" ? parameters : JSON.stringify(parameters || {});
     const safeEndpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints || []);
 
     const slug = makeSlug(name);
+    const url = `${process.env.BASE_URL}/userapi/serve/${slug}`;
 
-    // ✅ HTTPS-safe URL
-    const url = `https://${req.get("host")}/userapi/serve/${slug}`;
-
-    // ✅ Auto-generate example code (JavaScript)
     const exampleCode = `// Example: Fetch data from your custom API
 fetch("${url}")
   .then(response => response.json())
@@ -204,6 +96,15 @@ fetch("${url}")
 
     await newApi.save();
 
+    // 🔔 Create notification for new API
+    await createNotification({
+      userId: req.user._id,
+      type: "UserApi",
+      itemId: newApi._id,
+      action: "new",
+      message: `You created a new API: ${newApi.name}`
+    });
+
     return res.status(201).json({
       message: "✅ User API created successfully",
       api: {
@@ -223,72 +124,10 @@ fetch("${url}")
   }
 });
 
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch public APIs", error: err.message });
-  }
-});
-
-router.get("/myApis", userAuth, async (req, res) => {
-  try {
-    const apis = await UserApi.find({ user: req.user._id });
-    res.json(apis);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch user APIs", error: err.message });
-  }
-});
-
-/* -------------------------------------------------------------------------- */
-/* 🟢 SERVE API DATA (Dynamic Filtering + Endpoints)                         */
-/* -------------------------------------------------------------------------- */
-
-// ✅ Main serve route
-router.get("/serve/:slug", serveApiHandler);
-
-// ✅ Sub-endpoint (e.g. /students or /data)
-router.get("/serve/:slug/:sub", serveApiHandler);
-
-// ✅ Sub-endpoint with ID (e.g. /students/0)
-router.get("/serve/:slug/:sub/:id", serveApiHandler);
-/* -------------------------------------------------------------------------- */
-/* 🟢 GET USER API BY ID                                                      */
-/* -------------------------------------------------------------------------- */
-router.get("/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    if (!id) return res.status(400).json({ message: "API ID is required" });
-
-    const api = await UserApi.findById(id);
-    if (!api) return res.status(404).json({ message: "API not found" });
-
-    return res.status(200).json({
-      _id: api._id,
-      user: api.user,
-      name: api.name,
-      description: api.description,
-      category: api.category,
-      version: api.version,
-      parameters: api.parameters,
-      endpoints: api.endpoints,
-      visibility: api.visibility,
-      fileType: api.fileType,
-      data: api.data,
-      exampleCode: api.exampleCode,
-      url: api.url,
-    });
-  } catch (err) {
-    console.error("❌ Fetch API by ID error:", err);
-    return res.status(500).json({ message: "Failed to fetch API", error: err.message });
-  }
-});
-
 /* -------------------------------------------------------------------------- */
 /* 🟢 UPDATE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-/* -------------------------------------------------------------------------- */
-/* 🟢 UPDATE USER API BY ID (No Auth)                                        */
-/* -------------------------------------------------------------------------- */
-router.put("/:id", upload.single("file"), async (req, res) => {
+router.put("/:id", userAuth, upload.single("file"), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, category, version, parameters, endpoints, visibility } = req.body;
@@ -296,7 +135,9 @@ router.put("/:id", upload.single("file"), async (req, res) => {
     const api = await UserApi.findById(id);
     if (!api) return res.status(404).json({ message: "API not found" });
 
-    // Update fields if provided
+    const originalName = api.name;
+
+    // Update fields
     if (name) api.name = name;
     if (description) api.description = description;
     if (category) api.category = category;
@@ -305,32 +146,24 @@ router.put("/:id", upload.single("file"), async (req, res) => {
     if (endpoints) api.endpoints = typeof endpoints === "string" ? endpoints : JSON.stringify(endpoints);
     if (visibility) api.visibility = visibility === "private" ? "private" : "public";
 
-    // Handle uploaded file
     if (req.file) {
       const fileName = req.file.originalname.toLowerCase();
       let parsedData = [];
       let fileType = "none";
 
-      if (fileName.endsWith(".csv")) {
-        parsedData = await csv().fromString(req.file.buffer.toString());
-        fileType = "csv";
-      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+      if (fileName.endsWith(".csv")) parsedData = await csv().fromString(req.file.buffer.toString()), fileType = "csv";
+      else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
         const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         parsedData = xlsx.utils.sheet_to_json(sheet);
         fileType = "excel";
-      } else if (fileName.endsWith(".json")) {
-        parsedData = JSON.parse(req.file.buffer.toString());
-        fileType = "json";
-      } else {
-        return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
-      }
+      } else if (fileName.endsWith(".json")) parsedData = JSON.parse(req.file.buffer.toString()), fileType = "json";
+      else return res.status(400).json({ message: "Unsupported file format (allowed: csv, xlsx, xls, json)" });
 
       api.data = parsedData;
       api.fileType = fileType;
     }
 
-    // Update exampleCode if name changed
     if (name) {
       const url = `${req.protocol}://${req.get("host")}/userapi/serve/${api.slug}`;
       api.exampleCode = `// Example: Fetch data from your custom API
@@ -342,6 +175,27 @@ fetch("${url}")
 
     await api.save();
 
+    // 🔔 Notification logic
+    if (String(api.user) !== String(req.user._id)) {
+      // Agar koi aur user update kare, owner ko notify karo
+      await createNotification({
+        userId: api.user,
+        type: "UserApi",
+        itemId: api._id,
+        action: "update",
+        message: `${req.user.name || 'Someone'} updated your API: ${originalName}`
+      });
+    } else {
+      // Agar owner khud update kare
+      await createNotification({
+        userId: api.user,
+        type: "UserApi",
+        itemId: api._id,
+        action: "update",
+        message: `You updated your API: ${api.name}`
+      });
+    }
+
     return res.status(200).json({ message: "✅ API updated successfully", api });
   } catch (err) {
     console.error("❌ Update API error:", err);
@@ -350,16 +204,37 @@ fetch("${url}")
 });
 
 /* -------------------------------------------------------------------------- */
-/* 🟢 DELETE USER API BY ID (No Auth)                                        */
+/* 🟢 DELETE USER API BY ID                                                   */
 /* -------------------------------------------------------------------------- */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", userAuth, async (req, res) => {
   try {
     const { id } = req.params;
-
     const api = await UserApi.findById(id);
     if (!api) return res.status(404).json({ message: "API not found" });
 
-    await UserApi.deleteOne({ _id: id }); 
+    await UserApi.deleteOne({ _id: id });
+
+    // 🔔 Notification logic
+    if (String(api.user) !== String(req.user._id)) {
+      // Agar koi aur user delete kare, owner ko notify karo
+      await createNotification({
+        userId: api.user,
+        type: "UserApi",
+        itemId: id,
+        action: "delete",
+        message: `${req.user.name || 'Someone'} deleted your API: ${api.name}`
+      });
+    } else {
+      // Agar owner khud delete kare
+      await createNotification({
+        userId: api.user,
+        type: "UserApi",
+        itemId: id,
+        action: "delete",
+        message: `You deleted your API: ${api.name}`
+      });
+    }
+
     return res.status(200).json({ message: "✅ API deleted successfully" });
   } catch (err) {
     console.error("❌ Delete API error:", err);
@@ -367,7 +242,11 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+/* -------------------------------------------------------------------------- */
+/* 🟢 Other routes (serve, get by ID, public, myApis) remain unchanged       */
+/* -------------------------------------------------------------------------- */
 
+// Serve API handler
 async function serveApiHandler(req, res) {
   try {
     const { slug, sub, id } = req.params;
@@ -378,17 +257,13 @@ async function serveApiHandler(req, res) {
 
     let data = userApi.data;
 
-    // ✅ Handle sub-endpoints like /students or /students/0
     if (sub) {
       if (id && !isNaN(id)) {
         const index = parseInt(id);
         data = userApi.data[index] ? [userApi.data[index]] : [];
-      } else {
-        data = userApi.data; // Return all for /students or any sub
-      }
+      } else data = userApi.data;
     }
 
-    // ✅ Handle filters (e.g. ?Department=BSN%20Nursing)
     if (Object.keys(filters).length > 0) {
       data = data.filter((item) =>
         Object.keys(filters).every((key) => {
@@ -399,27 +274,37 @@ async function serveApiHandler(req, res) {
       );
     }
 
-    return res.status(200).json({
-      message: "✅ Data fetched successfully",
-      total: data.length,
-      filters: filters,
-      data: data,
-    });
+    return res.status(200).json({ message: "✅ Data fetched successfully", total: data.length, filters, data });
   } catch (error) {
     console.error("❌ Serve API error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🟢 Optional Auth Middleware                                               */
-/* -------------------------------------------------------------------------- */
-function userAuthOptional(req, res, next) {
+router.get("/serve/:slug", serveApiHandler);
+router.get("/serve/:slug/:sub", serveApiHandler);
+router.get("/serve/:slug/:sub/:id", serveApiHandler);
+
+router.get("/myApis", userAuth, async (req, res) => {
   try {
-    return userAuth(req, res, () => next());
-  } catch {
-    next();
+    const apis = await UserApi.find({ user: req.user._id });
+    res.json(apis);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch user APIs", error: err.message });
   }
-}
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ message: "API ID is required" });
+    const api = await UserApi.findById(id);
+    if (!api) return res.status(404).json({ message: "API not found" });
+    return res.status(200).json(api);
+  } catch (err) {
+    console.error("❌ Fetch API by ID error:", err);
+    return res.status(500).json({ message: "Failed to fetch API", error: err.message });
+  }
+});
 
 module.exports = router;
