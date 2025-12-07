@@ -19,7 +19,7 @@ aiRoute.post("/gemini", async (req, res) => {
 
     // 🔥 Gemini AI Request
     const response = await axios.post(
-      "https://gemini.googleapis.com/v1beta2/models/text-bison-003:generateMessage",
+      " https://generativelanguage.googleapis.com/v1beta2/models/text-bison-003:generateMessage",
       {
         prompt: { text: prompt }
       },
