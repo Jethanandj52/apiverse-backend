@@ -26,6 +26,7 @@ const apiHistoryRoutes = require("./routes/apiHistoryRoutes");
 
 const router = require("./routes/apiSecurity");
 const userApiRoute = require("./routes/userApiRoute");
+const apitest = require("./routes/apitesting");
  
 
 const app = express();
@@ -63,6 +64,7 @@ app.use("/requests", apiHistoryRoutes);
 
 app.use("/api-security", router);
 app.use("/userapi", userApiRoute);
+app.use("/testapi",apitest)
  
 app.get("/", (req, res) => {
   res.send("APIverseis running...");
