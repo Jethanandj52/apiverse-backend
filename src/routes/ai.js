@@ -3,41 +3,44 @@ const aiRoute = express.Router();
 const axios = require("axios");
 const Chat = require("../models/Chat");
 
-const GEMINI_API_KEY =
-  process.env.API_KEY ||
-  "AIzaSyBltP7STZ-ttMLqmuBnNq-C0dvlNfTU1QA"; // apni valid Gemini key
+// 🔥 DeepSeek API (OpenRouter)
+const OPENROUTER_API_KEY = process.env.API_KEY;
 
-// ✅ Gemini AI Endpoint
+// ===============================
+//  AI Chat Route (DeepSeek Free)
+// ===============================
 aiRoute.post("/gemini", async (req, res) => {
   try {
     const { prompt, userId, chatId } = req.body;
+
     if (!prompt || !userId) {
       return res.status(400).json({ message: "Prompt and User ID required" });
     }
 
-    // ✅ Updated model to gemini-2.0-flash
+    // 🔥 DeepSeek AI Request
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      "https://openrouter.ai/api/v1/chat/completions",
       {
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ]
+        model: "deepseek/deepseek-r1",   // FREE unlimited
+        messages: [{ role: "user", content: prompt }]
       },
       {
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json"
+        }
       }
     );
 
-    const aiResponse =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No response received";
+    // Extract AI reply
+    const aiResponse = response.data?.choices?.[0]?.message?.content || "No response received";
 
     let chat;
 
     if (chatId) {
+      // 🟦 Update Existing Chat
       chat = await Chat.findById(chatId);
+
       if (chat) {
         chat.messages.push({ role: "user", content: prompt });
         chat.messages.push({ role: "ai", content: aiResponse });
@@ -47,6 +50,7 @@ aiRoute.post("/gemini", async (req, res) => {
     }
 
     if (!chat) {
+      // 🟩 New Chat Create
       chat = new Chat({
         userId,
         title: prompt.slice(0, 40),
@@ -55,12 +59,14 @@ aiRoute.post("/gemini", async (req, res) => {
           { role: "ai", content: aiResponse }
         ]
       });
+
       await chat.save();
     }
 
     return res.status(200).json({ chatId: chat._id, response: aiResponse });
+
   } catch (err) {
-    console.error("Gemini Error:", err.response?.data || err.message);
+    console.error("AI Error:", err.response?.data || err.message);
     return res.status(500).json({
       message: "AI processing failed",
       error: err.response?.data || err.message
@@ -68,7 +74,12 @@ aiRoute.post("/gemini", async (req, res) => {
   }
 });
 
-// ✅ Chat history routes
+
+// ===============================
+// Chat History Routes (Same)
+// ===============================
+
+// Get All Chats of User
 aiRoute.get("/history/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
@@ -79,6 +90,7 @@ aiRoute.get("/history/:userId", async (req, res) => {
   }
 });
 
+// Single Chat by ID
 aiRoute.get("/chat/:id", async (req, res) => {
   try {
     const chat = await Chat.findById(req.params.id);
@@ -89,6 +101,7 @@ aiRoute.get("/chat/:id", async (req, res) => {
   }
 });
 
+// Delete Chat
 aiRoute.delete("/chat/:id", async (req, res) => {
   try {
     const chat = await Chat.findByIdAndDelete(req.params.id);
