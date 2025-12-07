@@ -3,11 +3,11 @@ const aiRoute = express.Router();
 const axios = require("axios");
 const Chat = require("../models/Chat");
 
-// 🔥 Gemini 3 API
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// 🔥 DeepSeek API (OpenRouter)
+const OPENROUTER_API_KEY = process.env.API_KEY;
 
 // ===============================
-//  AI Chat Route (Gemini 3)
+//  AI Chat Route (DeepSeek Free)
 // ===============================
 aiRoute.post("/gemini", async (req, res) => {
   try {
@@ -17,22 +17,23 @@ aiRoute.post("/gemini", async (req, res) => {
       return res.status(400).json({ message: "Prompt and User ID required" });
     }
 
-    // 🔥 Gemini AI Request
+    // 🔥 DeepSeek AI Request
     const response = await axios.post(
-      " https://generativelanguage.googleapis.com/v1beta2/models/text-bison-003:generateMessage",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
-        prompt: { text: prompt }
+        model: "deepseek/deepseek-r1",   // FREE unlimited
+        messages: [{ role: "user", content: prompt }]
       },
       {
         headers: {
-          "Authorization": `Bearer ${GEMINI_API_KEY}`,
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
           "Content-Type": "application/json"
         }
       }
     );
 
     // Extract AI reply
-    const aiResponse = response.data?.candidates?.[0]?.content || "No response received";
+    const aiResponse = response.data?.choices?.[0]?.message?.content || "No response received";
 
     let chat;
 
@@ -73,8 +74,9 @@ aiRoute.post("/gemini", async (req, res) => {
   }
 });
 
+
 // ===============================
-// Chat History Routes
+// Chat History Routes (Same)
 // ===============================
 
 // Get All Chats of User
