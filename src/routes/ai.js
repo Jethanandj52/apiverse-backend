@@ -7,20 +7,7 @@ const Chat = require("../models/Chat");
 const OPENROUTER_API_KEY = process.env.API_KEY;
 
 // ===============================
-// ✅ CORS Preflight for /gemini
-// ===============================
-aiRoute.options("/gemini", (req, res) => {
-  res.set({
-    "Access-Control-Allow-Origin": "http://localhost:5173", // frontend URL
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  });
-  return res.sendStatus(204);
-});
-
-// ===============================
-// AI Chat Route
+//  AI Chat Route (DeepSeek Free)
 // ===============================
 aiRoute.post("/gemini", async (req, res) => {
   try {
@@ -34,14 +21,14 @@ aiRoute.post("/gemini", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "deepseek/deepseek-r1", // FREE unlimited
-        messages: [{ role: "user", content: prompt }],
+        model: "deepseek/deepseek-r1",   // FREE unlimited
+        messages: [{ role: "user", content: prompt }]
       },
       {
         headers: {
           Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
@@ -53,6 +40,7 @@ aiRoute.post("/gemini", async (req, res) => {
     if (chatId) {
       // 🟦 Update Existing Chat
       chat = await Chat.findById(chatId);
+
       if (chat) {
         chat.messages.push({ role: "user", content: prompt });
         chat.messages.push({ role: "ai", content: aiResponse });
@@ -62,36 +50,33 @@ aiRoute.post("/gemini", async (req, res) => {
     }
 
     if (!chat) {
-      // 🟩 New Chat
+      // 🟩 New Chat Create
       chat = new Chat({
         userId,
         title: prompt.slice(0, 40),
         messages: [
           { role: "user", content: prompt },
-          { role: "ai", content: aiResponse },
-        ],
+          { role: "ai", content: aiResponse }
+        ]
       });
+
       await chat.save();
     }
 
-    // ✅ Set CORS headers for POST response
-    res.set({
-      "Access-Control-Allow-Origin": "http://localhost:5173",
-      "Access-Control-Allow-Credentials": "true",
-    });
-
     return res.status(200).json({ chatId: chat._id, response: aiResponse });
+
   } catch (err) {
     console.error("AI Error:", err.response?.data || err.message);
     return res.status(500).json({
       message: "AI processing failed",
-      error: err.response?.data || err.message,
+      error: err.response?.data || err.message
     });
   }
 });
 
+
 // ===============================
-// Chat History Routes
+// Chat History Routes (Same)
 // ===============================
 
 // Get All Chats of User
