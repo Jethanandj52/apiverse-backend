@@ -38,7 +38,7 @@ apiRoute.get('/showApi', async (req, res) => {
     res.json(allApis);
   } catch (err) {
     console.error("Error fetching APIs:", err.message);
-    res.status(500).jsona({ message: 'Failed to fetch APIs', error: err.message });
+    res.status(500).json({ message: 'Failed to fetch APIs', error: err.message });
   }
 });
 
@@ -71,7 +71,7 @@ apiRoute.put("/updateApi/:id", async (req, res) => {
     // ✅ Compare old vs new fields (ignore updatedAt)
     let changes = [];
     for (let key in req.body) {
-      if (key === "updatedAt") continue; // ignore updatedAt
+      if (key === "updatedAt") continue;
       if (JSON.stringify(api[key]) !== JSON.stringify(updated[key])) {
         changes.push({ field: key, old: api[key], new: updated[key] });
       }
@@ -96,7 +96,9 @@ apiRoute.put("/updateApi/:id", async (req, res) => {
       }
     }
 
-    res.json({ message: "Updated successfully", updated, changes });
+    // ✅ Send only the updated object for frontend
+    res.json(updated);
+
   } catch (error) {
     console.error("❌ Update failed:", error.stack);
     res.status(500).json({ message: "Update failed", error: error.message });
