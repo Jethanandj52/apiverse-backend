@@ -3,7 +3,7 @@ const aiRoute = express.Router()
 const axios = require("axios")
 const Chat = require("../models/Chat")
 
-const API_KEY = process.env.GEMINI_API_KEY
+const API_KEY = process.env.API_KEY
 
 aiRoute.post("/gemini", async (req, res) => {
   try {
