@@ -36,7 +36,7 @@ router.post('/invite', userAuth, async (req, res) => {
     await invite.save();
 
     // Send email
-    const inviteLink = `http://localhost:5173/groupInvites`;
+    const inviteLink = `https://apiverse-fyp.vercel.app/groupInvites`;
     const mailOptions = {
       from: 'APIverse <jethanandj52@gmail.com>',
       to: receiverEmail,
