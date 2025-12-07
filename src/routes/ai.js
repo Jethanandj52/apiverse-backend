@@ -5,7 +5,7 @@ const Chat = require("../models/Chat");
 
 const GEMINI_API_KEY =
   process.env.API_KEY ||
-  "AIzaSyCF8IutexTkZhF6k155aDHmTXQ59kHWJwA"; // apni valid Gemini key
+  "AIzaSyBltP7STZ-ttMLqmuBnNq-C0dvlNfTU1QA"; // apni valid Gemini key
 
 // ✅ Gemini AI Endpoint
 aiRoute.post("/gemini", async (req, res) => {
