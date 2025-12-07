@@ -1,36 +1,46 @@
-const express = require("express");
-const aiRoute = express.Router();
-const axios = require("axios");
-const Chat = require("../models/Chat");
+const express = require("express")
+const aiRoute = express.Router()
+const axios = require("axios")
+const Chat = require("../models/Chat")
 
-const API_KEY = process.env.API_KEY;
+const API_KEY = process.env.GEMINI_API_KEY
 
-// 🔥 Generate AI response
 aiRoute.post("/gemini", async (req, res) => {
   try {
-    const { prompt, userId, chatId } = req.body;
-    if (!prompt || !userId)
-      return res.status(400).json({ message: "Prompt & UserId required" });
+    const { prompt, userId, chatId } = req.body
+    if (!prompt || !userId) {
+      return res.status(400).json({ message: "Prompt and User ID required" })
+    }
 
-    // 🧠 Gemini API
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
-      { contents: [{ parts: [{ text: prompt }] }] },
-      { headers: { "Content-Type": "application/json" } }
-    );
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
+      {
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ]
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    )
 
     const aiResponse =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ No response";
+      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response received"
 
-    // 💾 Save to DB
-    let chat;
+    let chat
+
     if (chatId) {
-      chat = await Chat.findById(chatId);
+      chat = await Chat.findById(chatId)
       if (chat) {
-        chat.messages.push({ role: "user", content: prompt });
-        chat.messages.push({ role: "ai", content: aiResponse });
-        chat.title = chat.title || prompt.slice(0, 40);
-        await chat.save();
+        chat.messages.push({ role: "user", content: prompt })
+        chat.messages.push({ role: "ai", content: aiResponse })
+        chat.title = chat.title || prompt.slice(0, 40)
+        await chat.save()
       }
     }
 
@@ -40,53 +50,50 @@ aiRoute.post("/gemini", async (req, res) => {
         title: prompt.slice(0, 40),
         messages: [
           { role: "user", content: prompt },
-          { role: "ai", content: aiResponse },
-        ],
-      });
-      await chat.save();
+          { role: "ai", content: aiResponse }
+        ]
+      })
+      await chat.save()
     }
 
-    res.status(200).json({ chatId: chat._id, response: aiResponse });
+    return res.status(200).json({ chatId: chat._id, response: aiResponse })
   } catch (err) {
-    console.error("Gemini Error:", err.message);
-    res.status(500).json({ message: "Server Error", error: err.message });
+    console.error("Gemini Error:", err.response?.data || err.message)
+    return res.status(500).json({
+      message: "AI processing failed",
+      error: err.response?.data || err.message
+    })
   }
-});
+})
 
-// 🧾 Get user chat list
 aiRoute.get("/history/:userId", async (req, res) => {
   try {
-    const { userId } = req.params;
-    const chats = await Chat.find({ userId }).sort({ updatedAt: -1 });
-    res.status(200).json(chats);
+    const { userId } = req.params
+    const chats = await Chat.find({ userId }).sort({ updatedAt: -1 })
+    return res.status(200).json(chats)
   } catch (err) {
-    console.error("History Error:", err.message);
-    res.status(500).json({ message: "Failed to fetch history" });
+    return res.status(500).json({ message: "Failed to fetch history" })
   }
-});
+})
 
-// 📜 Get single chat
 aiRoute.get("/chat/:id", async (req, res) => {
   try {
-    const chat = await Chat.findById(req.params.id);
-    if (!chat) return res.status(404).json({ message: "Chat not found" });
-    res.status(200).json(chat);
+    const chat = await Chat.findById(req.params.id)
+    if (!chat) return res.status(404).json({ message: "Chat not found" })
+    return res.status(200).json(chat)
   } catch (err) {
-    console.error("Chat Fetch Error:", err.message);
-    res.status(500).json({ message: "Failed to fetch chat" });
+    return res.status(500).json({ message: "Failed to fetch chat" })
   }
-});
+})
 
-// 🗑️ DELETE chat
 aiRoute.delete("/chat/:id", async (req, res) => {
   try {
-    const chat = await Chat.findByIdAndDelete(req.params.id);
-    if (!chat) return res.status(404).json({ message: "Chat not found" });
-    res.status(200).json({ message: "Chat deleted successfully" });
+    const chat = await Chat.findByIdAndDelete(req.params.id)
+    if (!chat) return res.status(404).json({ message: "Chat not found" })
+    return res.status(200).json({ message: "Chat deleted successfully" })
   } catch (err) {
-    console.error("Delete Error:", err.message);
-    res.status(500).json({ message: "Failed to delete chat" });
+    return res.status(500).json({ message: "Failed to delete chat" })
   }
-});
+})
 
-module.exports = aiRoute;
+module.exports = aiRoute
